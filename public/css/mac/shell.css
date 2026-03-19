@@ -1,13 +1,399 @@
-/* Mac Shell - Menu Bar, Dock, Desktop (Phase 2) */
+/* Mac Shell - Menu Bar, Dock, Desktop Icons, Context Menu */
 
+/* ================================================================
+   DESKTOP
+   ================================================================ */
 .mac-desktop {
     width: 100%;
     height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%235b9fd7"/></svg>') center/cover;
+    /* Leopard-era aurora background */
+    background:
+        radial-gradient(ellipse 120% 80% at 50% 60%,
+            rgba(90, 60, 160, 0.25) 0%,
+            transparent 60%
+        ),
+        radial-gradient(ellipse 100% 60% at 60% 35%,
+            rgba(80, 180, 210, 0.2) 0%,
+            transparent 50%
+        ),
+        linear-gradient(180deg,
+            #2a5298 0%,
+            #4a8ec9 20%,
+            #5eb5d4 38%,
+            #5aa0c8 50%,
+            #4878a8 65%,
+            #3a5a8a 78%,
+            #2a3d6b 90%,
+            #1e2b50 100%
+        );
+    font-family: var(--mac-font, 'Lucida Grande', sans-serif);
+    position: relative;
+    overflow: hidden;
+}
+
+/* ================================================================
+   MENU BAR
+   ================================================================ */
+.mac-menubar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 25px;
+    /* Semi-transparent frosted glass */
+    background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.85) 0%,
+        rgba(240,240,240,0.78) 50%,
+        rgba(220,220,220,0.75) 100%
+    );
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border-bottom: 1px solid rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    z-index: 9100;
+    user-select: none;
+    -webkit-user-select: none;
+    font-size: 13px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.mac-apple-menu {
+    padding: 0 10px 0 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.mac-apple-menu .apple-icon {
+    font-size: 16px;
+    color: #333;
+    line-height: 1;
+}
+
+.mac-app-name {
+    padding: 0 12px 0 2px;
+    font-size: 13px;
+    color: #1a1a1a;
+}
+
+.mac-app-name strong {
+    font-weight: 700;
+}
+
+.mac-menu-items {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+}
+
+.mac-menu-item {
+    padding: 2px 10px;
+    font-size: 13px;
+    color: #1a1a1a;
+    cursor: default;
+    border-radius: 3px;
+    transition: background 0.1s;
+}
+
+.mac-menu-item:hover {
+    background: linear-gradient(to bottom, #4A90D9 0%, #2968C8 100%);
+    color: #fff;
+    border-radius: 4px;
+}
+
+.mac-status-icons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.mac-status-icons .status-icon {
+    font-size: 12px;
+    opacity: 0.7;
+    cursor: default;
+}
+
+.mac-status-icons .system-time {
+    font-size: 12px;
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+/* ================================================================
+   DESKTOP ICONS (Finder-style, right-aligned)
+   ================================================================ */
+#mac-desktop .desktop-icons {
+    position: absolute;
+    top: 35px; /* below menu bar */
+    right: 16px;
+    bottom: 80px; /* above dock */
+    width: 100px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(auto-fill, 90px);
+    grid-auto-flow: row;
+    gap: 4px;
+    align-content: start;
+    pointer-events: all;
+}
+
+.mac-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 6px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: 90px;
+    height: 86px;
+}
+
+.mac-icon .icon-image {
+    font-size: 40px;
+    line-height: 1;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3));
+}
+
+.mac-icon .icon-label {
+    font-size: 11px;
+    color: #fff;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    line-height: 1.2;
+    word-break: break-word;
+    max-width: 80px;
+}
+
+.mac-icon:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.mac-icon.selected {
+    background: rgba(60,130,220,0.45);
+    border-radius: 6px;
+}
+
+.mac-icon.selected .icon-label {
+    background: rgba(50,110,200,0.7);
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+
+/* ================================================================
+   DOCK
+   ================================================================ */
+.mac-dock {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+}
+
+.dock-container {
+    display: flex;
+    align-items: flex-end;
+    padding: 4px 10px 2px;
+    /* Shelf / glass effect */
+    background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.35) 0%,
+        rgba(255,255,255,0.15) 40%,
+        rgba(255,255,255,0.05) 100%
+    );
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 5px 5px 0 0;
+    box-shadow:
+        0 4px 16px rgba(0,0,0,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.4);
+}
+
+.dock-apps {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.dock-minimized {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.dock-trash {
+    display: flex;
+    align-items: flex-end;
+}
+
+.dock-separator {
+    width: 1px;
+    height: 40px;
+    background: rgba(255,255,255,0.3);
+    margin: 0 6px;
+    align-self: center;
+}
+
+/* Individual Dock Icon */
+.dock-icon {
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: transform 0.08s ease-out;
+    padding: 0;
+    transform-origin: bottom center;
+    will-change: transform;
+}
+
+.dock-icon-img {
+    font-size: 40px;
+    line-height: 1;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3));
+    transition: filter 0.15s;
+}
+
+.dock-icon:hover .dock-icon-img {
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)) brightness(1.1);
+}
+
+/* Running indicator dot */
+.dock-indicator {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: transparent;
+    position: absolute;
+    bottom: -2px;
+    transition: background 0.2s;
+}
+
+.dock-indicator.active {
+    background: #fff;
+    box-shadow: 0 0 6px rgba(255,255,255,0.8), 0 0 2px rgba(255,255,255,1);
+}
+
+/* Dock tooltip on hover (via title attr + CSS) */
+.dock-icon::before {
+    content: attr(data-label);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    background: rgba(30,30,30,0.9);
+    color: #fff;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: transform 0.1s ease;
     font-family: var(--mac-font, 'Lucida Grande', sans-serif);
 }
 
-.mac-menubar,
-.mac-dock {
-    /* To be implemented in Phase 2, Commit 3 */
+.dock-icon:hover::before {
+    transform: translateX(-50%) scale(1);
+}
+
+/* Dock bounce animation for launching apps */
+@keyframes dockBounce {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-30px); }
+    60% { transform: translateY(-4px); }
+}
+
+.dock-icon.launching {
+    animation: dockBounce 0.6s ease-in-out 3;
+}
+
+/* ================================================================
+   CONTEXT MENU (Mac style)
+   ================================================================ */
+/* Apple Menu Dropdown */
+.apple-menu-dropdown {
+    position: absolute;
+    top: 22px;
+    left: 0;
+    min-width: 200px;
+    background: rgba(236,236,236,0.92);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    padding: 4px 0;
+    z-index: 9200;
+    font-family: var(--mac-font, 'Lucida Grande', sans-serif);
+}
+
+.apple-menu-dropdown .context-item {
+    display: block;
+    width: calc(100% - 8px);
+    margin: 0 4px;
+    padding: 4px 20px 4px 12px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    font-size: 12px;
+    font-family: inherit;
+    color: #1a1a1a;
+    cursor: default;
+    border-radius: 3px;
+}
+
+.apple-menu-dropdown .context-item:hover {
+    background: linear-gradient(to bottom, #4A90D9 0%, #2968C8 100%);
+    color: #fff;
+}
+
+.apple-menu-dropdown .context-separator {
+    height: 1px;
+    background: rgba(0,0,0,0.1);
+    margin: 4px 0;
+}
+
+#mac-context-menu.context-menu {
+    background: rgba(240,240,240,0.95);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    padding: 4px 0;
+    min-width: 200px;
+    font-family: var(--mac-font, 'Lucida Grande', sans-serif);
+}
+
+#mac-context-menu .context-item {
+    font-size: 12px;
+    padding: 4px 20px 4px 12px;
+    border-radius: 3px;
+    margin: 0 4px;
+    width: calc(100% - 8px);
+}
+
+#mac-context-menu .context-item:hover {
+    background: rgba(60,130,220,0.85);
+    color: #fff;
+}
+
+#mac-context-menu .context-separator {
+    height: 1px;
+    background: rgba(0,0,0,0.1);
+    margin: 4px 0;
 }

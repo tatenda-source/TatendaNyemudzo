@@ -21,7 +21,7 @@
 <body>
   <!-- OS Selector Screen (shown first) -->
   <div id="os-selector" class="os-selector">
-    <canvas id="starfield" class="starfield-canvas"></canvas>
+    <canvas id="starfield" class="starfield-canvas" aria-hidden="true"></canvas>
     <div class="selector-container">
       <div class="welcome-message">
         <p class="welcome-text">Welcome to Tatenda Nyemudzo's Portfolio</p>
@@ -43,7 +43,7 @@
   </div>
 
   <!-- Boot Loader Screen (shown after selection) -->
-  <div id="boot-loader" class="boot-loader hidden">
+  <div id="boot-loader" class="boot-loader hidden" role="alert" aria-live="assertive" aria-label="Loading operating system">
     <!-- Vista Boot -->
     <div id="vista-boot" class="boot-screen hidden">
       <div class="vista-boot-orb"></div>
@@ -64,38 +64,81 @@
   <div id="desktop" class="desktop hidden">
     <!-- Vista Desktop -->
     <div id="vista-desktop" class="vista-desktop hidden">
-      <div class="vista-taskbar">
+      <div class="desktop-icons"></div>
+      <div class="windows-container"></div>
+      <!-- Vista Start Menu (hidden by default) -->
+      <div id="vista-start-menu" class="vista-start-menu hidden">
+        <div class="start-menu-left">
+          <div class="start-menu-user">
+            <div class="user-avatar"></div>
+            <span class="user-name">Tatenda</span>
+          </div>
+          <div class="start-menu-separator"></div>
+          <div class="start-menu-apps"></div>
+        </div>
+        <div class="start-menu-right">
+          <div class="start-menu-places"></div>
+          <div class="start-menu-separator"></div>
+          <div class="start-menu-actions"></div>
+        </div>
+      </div>
+      <!-- Vista Taskbar -->
+      <div class="vista-taskbar" role="toolbar" aria-label="Taskbar">
         <button class="vista-start-button" aria-label="Start">
           <div class="start-orb"></div>
         </button>
+        <div class="vista-quick-launch"></div>
         <div class="vista-taskbar-windows"></div>
         <div class="vista-system-tray">
-          <span class="system-time"></span>
+          <span class="tray-icon tray-volume" title="Volume" aria-label="Volume" role="img">&#128264;</span>
+          <span class="tray-icon tray-network" title="Network" aria-label="Network" role="img">&#127760;</span>
+          <span class="system-time" aria-label="System time" role="timer"></span>
         </div>
       </div>
-      <div class="desktop-icons"></div>
-      <div class="windows-container"></div>
+      <!-- Context Menu -->
+      <div id="vista-context-menu" class="context-menu hidden"></div>
     </div>
 
     <!-- Mac Desktop -->
     <div id="mac-desktop" class="mac-desktop hidden">
-      <div class="mac-menubar">
-        <div class="mac-apple-menu"></div>
-        <div class="mac-menu-items"></div>
+      <div class="mac-menubar" role="menubar" aria-label="Menu bar">
+        <div class="mac-apple-menu">
+          <span class="apple-icon">&#63743;</span>
+        </div>
+        <div class="mac-app-name"><strong>Finder</strong></div>
+        <div class="mac-menu-items">
+          <span class="mac-menu-item">File</span>
+          <span class="mac-menu-item">Edit</span>
+          <span class="mac-menu-item">View</span>
+          <span class="mac-menu-item">Go</span>
+          <span class="mac-menu-item">Window</span>
+          <span class="mac-menu-item">Help</span>
+        </div>
         <div class="mac-status-icons">
+          <span class="status-icon">&#128268;</span>
+          <span class="status-icon">&#128246;</span>
           <span class="system-time"></span>
         </div>
       </div>
       <div class="desktop-icons"></div>
       <div class="windows-container"></div>
-      <div class="mac-dock">
-        <div class="dock-apps"></div>
+      <div class="mac-dock" role="toolbar" aria-label="Dock">
+        <div class="dock-container">
+          <div class="dock-apps"></div>
+          <div class="dock-separator"></div>
+          <div class="dock-minimized"></div>
+          <div class="dock-separator"></div>
+          <div class="dock-trash"></div>
+        </div>
       </div>
+      <!-- Context Menu -->
+      <div id="mac-context-menu" class="context-menu hidden"></div>
     </div>
   </div>
 
   <!-- Scripts -->
   <script src="/js/data/portfolio-data.js"></script>
+  <script src="/js/core/event-bus.js"></script>
   <script src="/js/core/os-selector.js"></script>
   <script src="/js/core/boot-loader.js"></script>
   <script src="/js/core/window-manager.js"></script>

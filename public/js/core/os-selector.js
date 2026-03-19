@@ -19,17 +19,14 @@
             this.ctx = this.canvas.getContext('2d');
             this.options = document.querySelectorAll('.os-option');
             
-            // Check for saved OS preference
+            // Check for saved OS preference — pre-highlight, don't auto-boot
             const savedOS = localStorage.getItem('nostalgiaOS');
-            if (savedOS) {
-                // Auto-boot into saved OS
-                this.selectOS(savedOS);
-                return;
-            }
 
             this.setupStarfield();
             this.setupEventListeners();
-            this.updateSelection(0);
+            // Pre-select saved OS if returning visitor
+            const defaultIndex = savedOS === 'mac' ? 1 : 0;
+            this.updateSelection(defaultIndex);
         },
 
         setupStarfield() {
@@ -108,8 +105,8 @@
                 });
             });
 
-            // Keyboard navigation
-            document.addEventListener('keydown', (e) => {
+            // Keyboard navigation (store handler for cleanup)
+            this._keyHandler = (e) => {
                 switch(e.key) {
                     case 'ArrowLeft':
                         e.preventDefault();
@@ -126,7 +123,8 @@
                         this.selectOS(selectedOS);
                         break;
                 }
-            });
+            };
+            document.addEventListener('keydown', this._keyHandler);
         },
 
         updateSelection(index) {
@@ -146,6 +144,12 @@
             // Stop starfield animation
             if (this.animationId) {
                 cancelAnimationFrame(this.animationId);
+            }
+
+            // Remove keyboard handler to prevent leaks on desktop
+            if (this._keyHandler) {
+                document.removeEventListener('keydown', this._keyHandler);
+                this._keyHandler = null;
             }
 
             // Fade out selector

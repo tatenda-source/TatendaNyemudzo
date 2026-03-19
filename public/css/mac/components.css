@@ -1,2 +1,74 @@
-/* Mac Components - Buttons, Scrollbars (Phase 2+) */
-/* To be implemented in later commits */
+/* Mac Components - Scrollbars, Buttons, Shared UI */
+
+/* ================================================================
+   MAC SCROLLBAR (Leopard-era)
+   ================================================================ */
+.mac-window .window-body::-webkit-scrollbar {
+    width: 12px;
+}
+
+.mac-window .window-body::-webkit-scrollbar-track {
+    background: #eee;
+    border-left: 1px solid #ddd;
+}
+
+.mac-window .window-body::-webkit-scrollbar-thumb {
+    background: linear-gradient(to right, #b8b8b8, #a0a0a0, #b8b8b8);
+    border: 1px solid #999;
+    border-radius: 6px;
+    min-height: 30px;
+}
+
+.mac-window .window-body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to right, #a0a0a0, #888, #a0a0a0);
+}
+
+/* ================================================================
+   AQUA BUTTONS
+   ================================================================ */
+.aqua-btn {
+    padding: 3px 14px;
+    font-size: 12px;
+    font-family: var(--mac-font, 'Lucida Grande', sans-serif);
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    background: linear-gradient(to bottom, #fff 0%, #f0f0f0 50%, #e0e0e0 51%, #ebebeb 100%);
+    cursor: pointer;
+    color: #1a1a1a;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    transition: background 0.15s;
+}
+
+.aqua-btn:hover {
+    background: linear-gradient(to bottom, #f8f8ff 0%, #e8e8f0 50%, #d8d8e8 51%, #e0e0f0 100%);
+}
+
+.aqua-btn:active {
+    background: linear-gradient(to bottom, #d0d0d8 0%, #c0c0c8 50%, #b0b0b8 51%, #c0c0c8 100%);
+}
+
+.aqua-btn-primary {
+    background: var(--aqua-blue-gradient, linear-gradient(to bottom, #B8D4F1, #A5C8E8 50%, #8AB7DB 100%));
+    border-color: rgba(40,80,140,0.4);
+    color: #fff;
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0,80,180,0.2);
+}
+
+.aqua-btn-primary:hover {
+    background: linear-gradient(to bottom, #c8e0ff, #b0d0f0 50%, #98c0e0 100%);
+}
+
+.aqua-btn-primary:active {
+    background: linear-gradient(to bottom, #90b0d8, #80a0c8 50%, #6890b8 100%);
+}
+
+/* Aqua pulsing default button */
+@keyframes aquaPulse {
+    0%, 100% { box-shadow: 0 0 4px rgba(80,140,220,0.4); }
+    50% { box-shadow: 0 0 10px rgba(80,140,220,0.7); }
+}
+
+.aqua-btn-default {
+    animation: aquaPulse 2s ease-in-out infinite;
+}

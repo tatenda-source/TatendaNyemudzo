@@ -117,6 +117,11 @@
         },
 
         startSystemClock() {
+            // Clear any existing clock interval
+            if (this._clockInterval) {
+                clearInterval(this._clockInterval);
+            }
+
             const updateTime = () => {
                 const now = new Date();
                 const timeString = now.toLocaleTimeString('en-US', {
@@ -132,7 +137,7 @@
             };
 
             updateTime();
-            setInterval(updateTime, 1000);
+            this._clockInterval = setInterval(updateTime, 1000);
         }
     };
 

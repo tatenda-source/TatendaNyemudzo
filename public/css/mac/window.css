@@ -1,2 +1,354 @@
-/* Mac Window Chrome (Phase 2) */
-/* To be implemented in Commit 3 */
+/* Mac Window Chrome - Brushed Metal / Leopard */
+
+/* ================================================================
+   WINDOW FRAME
+   ================================================================ */
+.mac-window {
+    border-radius: 5px 5px 0 0;
+    overflow: hidden;
+    box-shadow: var(--mac-window-shadow, 0 10px 30px rgba(0,0,0,0.4), 0 5px 10px rgba(0,0,0,0.3));
+    border: 1px solid rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, opacity 0.2s;
+    /* Brushed metal / unified toolbar background */
+    background: linear-gradient(to bottom, #e8e8e8 0%, #d4d4d4 100%);
+}
+
+.mac-window.window-active {
+    box-shadow:
+        0 12px 36px rgba(0,0,0,0.4),
+        0 5px 12px rgba(0,0,0,0.25);
+    border-color: rgba(0,0,0,0.3);
+}
+
+.mac-window.window-inactive {
+    box-shadow:
+        0 6px 18px rgba(0,0,0,0.2),
+        0 3px 6px rgba(0,0,0,0.15);
+    border-color: rgba(0,0,0,0.15);
+    opacity: 0.92;
+}
+
+.mac-window.window-maximized {
+    border-radius: 0;
+}
+
+/* ================================================================
+   TITLE BAR
+   ================================================================ */
+.mac-window .window-titlebar {
+    height: 22px;
+    min-height: 22px;
+    /* Brushed metal title bar */
+    background: linear-gradient(
+        to bottom,
+        #ececec 0%,
+        #d8d8d8 50%,
+        #c8c8c8 51%,
+        #d0d0d0 100%
+    );
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    border-bottom: 1px solid rgba(0,0,0,0.12);
+    position: relative;
+    flex-shrink: 0;
+}
+
+.mac-window.window-inactive .window-titlebar {
+    background: linear-gradient(
+        to bottom,
+        #f0f0f0 0%,
+        #e4e4e4 50%,
+        #dcdcdc 51%,
+        #e8e8e8 100%
+    );
+}
+
+/* Title text (centred) */
+.mac-window .window-title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    pointer-events: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 70px; /* space for traffic lights + right padding */
+}
+
+.mac-window.window-inactive .window-title {
+    color: #888;
+}
+
+/* ================================================================
+   TRAFFIC LIGHT BUTTONS (close, minimize, maximize)
+   ================================================================ */
+.traffic-lights {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+.traffic-lights button {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.15);
+    cursor: pointer;
+    position: relative;
+    transition: opacity 0.1s;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Symbols hidden until hover */
+.traffic-lights button::before,
+.traffic-lights button::after {
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.traffic-lights:hover button::before,
+.traffic-lights:hover button::after {
+    opacity: 1;
+}
+
+/* Close - Red */
+.mac-window .window-btn-close {
+    background: linear-gradient(to bottom, #ff6058 0%, #e33e32 100%);
+    border-color: rgba(180,40,30,0.4);
+}
+
+.mac-window .window-btn-close::before,
+.mac-window .window-btn-close::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 1.5px;
+    background: rgba(80,10,0,0.7);
+    border-radius: 1px;
+}
+
+.mac-window .window-btn-close::before {
+    transform: rotate(45deg);
+}
+
+.mac-window .window-btn-close::after {
+    transform: rotate(-45deg);
+}
+
+/* Minimize - Yellow */
+.mac-window .window-btn-minimize {
+    background: linear-gradient(to bottom, #ffc130 0%, #e5a100 100%);
+    border-color: rgba(180,130,0,0.4);
+}
+
+.mac-window .window-btn-minimize::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 1.5px;
+    background: rgba(100,60,0,0.7);
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+/* Maximize - Green */
+.mac-window .window-btn-maximize {
+    background: linear-gradient(to bottom, #28c940 0%, #12a726 100%);
+    border-color: rgba(20,130,30,0.4);
+}
+
+.mac-window .window-btn-maximize::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 1.5px;
+    background: rgba(0,60,10,0.7);
+    border-radius: 1px;
+}
+
+.mac-window .window-btn-maximize::after {
+    content: '';
+    position: absolute;
+    width: 1.5px;
+    height: 8px;
+    background: rgba(0,60,10,0.7);
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+/* Inactive state: all grey */
+.mac-window.window-inactive .window-btn-close,
+.mac-window.window-inactive .window-btn-minimize,
+.mac-window.window-inactive .window-btn-maximize {
+    background: linear-gradient(to bottom, #d0d0d0 0%, #b8b8b8 100%);
+    border-color: rgba(0,0,0,0.12);
+}
+
+.mac-window.window-inactive .traffic-lights button::before,
+.mac-window.window-inactive .traffic-lights button::after {
+    opacity: 0 !important;
+}
+
+/* Hover glow */
+.mac-window .window-btn-close:hover {
+    box-shadow: 0 0 4px rgba(255,60,40,0.5);
+}
+
+.mac-window .window-btn-minimize:hover {
+    box-shadow: 0 0 4px rgba(255,190,0,0.5);
+}
+
+.mac-window .window-btn-maximize:hover {
+    box-shadow: 0 0 4px rgba(40,200,60,0.5);
+}
+
+/* ================================================================
+   WINDOW BODY
+   ================================================================ */
+.mac-window .window-body {
+    flex: 1;
+    overflow: auto;
+    background: var(--aqua-window-bg, #EDEDED);
+    padding: 12px;
+    font-size: 13px;
+    color: #1a1a1a;
+}
+
+/* ================================================================
+   RESIZE HANDLES
+   ================================================================ */
+.mac-window .resize-handle {
+    position: absolute;
+    z-index: 10;
+}
+
+.mac-window .resize-n  { top: -4px; left: 8px; right: 8px; height: 8px; cursor: n-resize; }
+.mac-window .resize-s  { bottom: -4px; left: 8px; right: 8px; height: 8px; cursor: s-resize; }
+.mac-window .resize-e  { right: -4px; top: 8px; bottom: 8px; width: 8px; cursor: e-resize; }
+.mac-window .resize-w  { left: -4px; top: 8px; bottom: 8px; width: 8px; cursor: w-resize; }
+.mac-window .resize-ne { top: -4px; right: -4px; width: 12px; height: 12px; cursor: ne-resize; }
+.mac-window .resize-nw { top: -4px; left: -4px; width: 12px; height: 12px; cursor: nw-resize; }
+.mac-window .resize-se { bottom: -4px; right: -4px; width: 12px; height: 12px; cursor: se-resize; }
+.mac-window .resize-sw { bottom: -4px; left: -4px; width: 12px; height: 12px; cursor: sw-resize; }
+
+/* Visible resize grip at bottom-right (Leopard style) */
+.mac-window .resize-se::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 10px;
+    height: 10px;
+    background: linear-gradient(
+        135deg,
+        transparent 30%,
+        rgba(0,0,0,0.1) 30%,
+        rgba(0,0,0,0.1) 40%,
+        transparent 40%,
+        transparent 55%,
+        rgba(0,0,0,0.1) 55%,
+        rgba(0,0,0,0.1) 65%,
+        transparent 65%,
+        transparent 80%,
+        rgba(0,0,0,0.1) 80%,
+        rgba(0,0,0,0.1) 90%,
+        transparent 90%
+    );
+}
+
+.mac-window.window-maximized .resize-handle {
+    display: none;
+}
+
+/* ================================================================
+   WINDOW ANIMATIONS
+   ================================================================ */
+.mac-window.window-minimizing {
+    animation: macGenie 0.5s ease-in forwards;
+    pointer-events: none;
+}
+
+.mac-window.window-restoring {
+    animation: macGenieReverse 0.4s ease-out;
+}
+
+.mac-window.window-closing {
+    animation: macClose 0.25s ease-in forwards;
+    pointer-events: none;
+}
+
+@keyframes macGenie {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.2, 0.05) translateY(80vh);
+    }
+}
+
+@keyframes macGenieReverse {
+    0% {
+        opacity: 0;
+        transform: scale(0.2, 0.05) translateY(80vh);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes macClose {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+}
+
+/* ================================================================
+   APP PLACEHOLDER
+   ================================================================ */
+.mac-window .app-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    text-align: center;
+}
+
+.mac-window .app-placeholder h2 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.mac-window .app-placeholder p {
+    font-size: 13px;
+    color: #888;
+}
