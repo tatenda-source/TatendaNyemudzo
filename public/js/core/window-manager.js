@@ -367,6 +367,14 @@
             // End any in-progress drag/resize
             document.dispatchEvent(new MouseEvent('mouseup'));
 
+            // Clean up game apps
+            if (state.appId === 'pacman' && window.PacManApp && window.PacManApp.destroy) {
+                window.PacManApp.destroy();
+            }
+            if (state.appId === 'chess' && window.ChessApp && window.ChessApp.destroy) {
+                window.ChessApp.destroy();
+            }
+
             state.el.classList.add('window-closing');
 
             setTimeout(() => {

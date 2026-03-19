@@ -151,28 +151,164 @@
             }
 
             const content = this._getAppContent(appId);
-            window.WindowManager.createWindow({
+            const isGame = content === 'GAME_PACMAN' || content === 'GAME_CHESS';
+            const winConfig = {
                 appId,
                 title: title || appId,
-                content,
-                width: 700,
-                height: 500,
-            });
+                content: isGame ? '' : content,
+                width: isGame ? (appId === 'chess' ? 520 : 480) : 700,
+                height: isGame ? (appId === 'chess' ? 580 : 560) : 500,
+            };
+            const winId = window.WindowManager.createWindow(winConfig);
+
+            // Init games after window is created
+            if (content === 'GAME_PACMAN' && window.PacManApp) {
+                const state = window.WindowManager.windows.get(winId);
+                if (state) {
+                    const body = state.el.querySelector('.window-body');
+                    window.PacManApp.init(body);
+                }
+            } else if (content === 'GAME_CHESS' && window.ChessApp) {
+                const state = window.WindowManager.windows.get(winId);
+                if (state) {
+                    const body = state.el.querySelector('.window-body');
+                    window.ChessApp.init(body);
+                }
+            }
         },
 
         _getAppContent(appId) {
-            // Placeholder content; Phase 3 will provide real app content
+            const d = window.PortfolioData || {};
             const map = {
-                'my-computer': '<div class="app-placeholder"><h2>My Computer</h2><p>System information and drives.</p></div>',
-                projects: '<div class="app-placeholder"><h2>Projects</h2><p>Portfolio projects showcase.</p></div>',
-                about: '<div class="app-placeholder"><h2>About Me</h2><p>Learn more about Tatenda Nyemudzo.</p></div>',
-                cv: '<div class="app-placeholder"><h2>My CV</h2><p>Professional experience and skills.</p></div>',
-                contact: '<div class="app-placeholder"><h2>Contact</h2><p>Get in touch.</p></div>',
-                'recycle-bin': '<div class="app-placeholder"><h2>Recycle Bin</h2><p>Empty.</p></div>',
-                pacman: '<div class="app-placeholder"><h2>Pac-Man</h2><p>Game coming in Phase 4.</p></div>',
-                chess: '<div class="app-placeholder"><h2>Chess</h2><p>Game coming in Phase 4.</p></div>',
+                'my-computer': `<div class="app-content vista-explorer">
+                    <div class="explorer-sidebar">
+                        <div class="sidebar-section"><strong>System</strong></div>
+                        <div class="sidebar-item">💻 Computer</div>
+                        <div class="sidebar-item">📂 Documents</div>
+                        <div class="sidebar-item">🖼️ Pictures</div>
+                    </div>
+                    <div class="explorer-main">
+                        <h3 style="margin-bottom:12px;color:#1a3a5c;">Computer</h3>
+                        <div class="drive-list">
+                            <div class="drive-item" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:4px;background:rgba(80,140,220,0.05);">
+                                <span style="font-size:32px;">💾</span>
+                                <div><strong>Local Disk (C:)</strong><br><span style="color:#666;font-size:12px;">Portfolio System Drive</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`,
+                projects: this._buildProjectsContent(d),
+                about: this._buildAboutContent(d),
+                cv: this._buildCVContent(d),
+                contact: this._buildContactContent(d),
+                'recycle-bin': '<div class="app-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#888;"><span style="font-size:64px;">🗑️</span><p style="margin-top:12px;">Recycle Bin is empty.</p></div>',
+                pacman: 'GAME_PACMAN',
+                chess: 'GAME_CHESS',
             };
-            return map[appId] || '<div class="app-placeholder"><p>Application loading...</p></div>';
+            return map[appId] || '<div class="app-content"><p>Application loading...</p></div>';
+        },
+
+        _buildAboutContent(d) {
+            return `<div class="app-content vista-about">
+                <div style="background:linear-gradient(135deg,#1a4d80,#2c6faa);padding:24px;color:#fff;border-radius:0;">
+                    <h2 style="font-size:24px;font-weight:300;margin-bottom:4px;">${d.name || 'Tatenda Nyemudzo'}</h2>
+                    <p style="opacity:0.8;font-size:14px;">${d.title || 'Full Stack Developer'} — ${d.location || ''}</p>
+                </div>
+                <div style="padding:16px;">
+                    <p style="line-height:1.7;color:#333;font-size:13px;margin-bottom:16px;">${d.summary || ''}</p>
+                    <h3 style="font-size:13px;color:#1a3a5c;margin-bottom:8px;">Technical Skills</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+                        ${(d.skills?.languages || []).concat(d.skills?.frameworks || []).map(s =>
+                            `<span style="background:#e8f0fe;color:#1a4d80;padding:3px 10px;border-radius:3px;font-size:11px;">${s}</span>`
+                        ).join('')}
+                    </div>
+                    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#555;">
+                        <span>📧 ${d.email || ''}</span>
+                        <span>📱 ${d.phone || ''}</span>
+                        <span>🔗 ${d.github || ''}</span>
+                    </div>
+                </div>
+            </div>`;
+        },
+
+        _buildProjectsContent(d) {
+            const projects = d.projects || [];
+            return `<div class="app-content vista-projects">
+                <div style="background:#f0f4f8;padding:10px 16px;border-bottom:1px solid #ddd;font-size:12px;color:#555;">
+                    📁 Portfolio &gt; Projects (${projects.length} items)
+                </div>
+                <div style="padding:16px;">
+                    ${projects.length ? projects.map(p => `
+                        <div style="border:1px solid #e0e6ed;border-radius:4px;padding:16px;margin-bottom:12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:start;">
+                                <h3 style="font-size:15px;color:#1a3a5c;margin-bottom:4px;">${p.title}</h3>
+                                <span style="background:#e8f0fe;color:#1a4d80;padding:2px 8px;border-radius:3px;font-size:10px;">${p.category}</span>
+                            </div>
+                            <p style="font-size:12px;color:#666;margin-bottom:8px;">${p.role}</p>
+                            <p style="font-size:13px;color:#333;line-height:1.6;margin-bottom:8px;">${p.description}</p>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                ${p.technologies.map(t => `<span style="background:#f0f0f0;padding:2px 8px;border-radius:2px;font-size:11px;color:#555;">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                    `).join('') : '<p style="color:#888;text-align:center;padding:40px;">No projects yet. Check back soon!</p>'}
+                </div>
+            </div>`;
+        },
+
+        _buildCVContent(d) {
+            return `<div class="app-content vista-cv">
+                <div style="background:#f8f8f8;padding:8px 16px;border-bottom:1px solid #ddd;display:flex;gap:8px;">
+                    <button onclick="window.print()" style="padding:4px 12px;border:1px solid #ccc;border-radius:3px;background:#fff;cursor:pointer;font-size:11px;">🖨️ Print</button>
+                </div>
+                <div style="max-width:600px;margin:20px auto;padding:32px;background:#fff;box-shadow:0 1px 8px rgba(0,0,0,0.08);font-size:13px;">
+                    <h2 style="font-size:22px;font-weight:400;color:#1a1a1a;margin-bottom:2px;">${d.name || ''}</h2>
+                    <p style="color:#555;margin-bottom:4px;">${d.title || ''}</p>
+                    <p style="font-size:11px;color:#888;margin-bottom:16px;">${d.location || ''} · ${d.email || ''} · ${d.phone || ''}</p>
+                    <hr style="border:none;border-top:1px solid #eee;margin-bottom:16px;">
+                    <h3 style="font-size:13px;color:#1a3a5c;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Summary</h3>
+                    <p style="line-height:1.7;color:#333;margin-bottom:16px;">${d.summary || ''}</p>
+                    <h3 style="font-size:13px;color:#1a3a5c;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Skills</h3>
+                    <div style="margin-bottom:16px;line-height:1.8;">
+                        <strong style="font-size:12px;">Languages:</strong> <span style="color:#555;">${(d.skills?.languages || []).join(', ')}</span><br>
+                        <strong style="font-size:12px;">Frameworks:</strong> <span style="color:#555;">${(d.skills?.frameworks || []).join(', ')}</span><br>
+                        <strong style="font-size:12px;">Web:</strong> <span style="color:#555;">${(d.skills?.webTechnologies || []).join(', ')}</span><br>
+                        <strong style="font-size:12px;">Tools:</strong> <span style="color:#555;">${(d.skills?.devOpsTools || []).join(', ')}</span>
+                    </div>
+                    <h3 style="font-size:13px;color:#1a3a5c;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Projects</h3>
+                    ${(d.projects || []).map(p => `
+                        <div style="margin-bottom:12px;">
+                            <strong>${p.title}</strong> <span style="color:#888;font-size:11px;">— ${p.role}</span>
+                            <p style="color:#555;margin-top:4px;">${p.description}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+        },
+
+        _buildContactContent(d) {
+            return `<div class="app-content vista-contact">
+                <div style="padding:24px;max-width:480px;margin:0 auto;">
+                    <h2 style="font-size:18px;font-weight:400;color:#1a3a5c;margin-bottom:16px;">✉️ Get In Touch</h2>
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #e8e8e8;border-radius:4px;margin-bottom:8px;">
+                            <span style="font-size:20px;">📧</span>
+                            <div><strong style="font-size:12px;color:#888;">Email</strong><br><a href="mailto:${d.email}" style="color:#1a4d80;text-decoration:none;">${d.email || ''}</a></div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #e8e8e8;border-radius:4px;margin-bottom:8px;">
+                            <span style="font-size:20px;">📱</span>
+                            <div><strong style="font-size:12px;color:#888;">Phone</strong><br>${d.phone || ''}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #e8e8e8;border-radius:4px;margin-bottom:8px;">
+                            <span style="font-size:20px;">🔗</span>
+                            <div><strong style="font-size:12px;color:#888;">GitHub</strong><br><a href="https://${d.github}" target="_blank" style="color:#1a4d80;text-decoration:none;">${d.github || ''}</a></div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #e8e8e8;border-radius:4px;">
+                            <span style="font-size:20px;">📍</span>
+                            <div><strong style="font-size:12px;color:#888;">Location</strong><br>${d.location || ''}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
         },
 
         /* --------------------------------------------------------
