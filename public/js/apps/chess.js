@@ -13,13 +13,80 @@
         [B_BISHOP]: '\u265D', [B_KNIGHT]: '\u265E', [B_PAWN]: '\u265F',
     };
 
+    // Piece values for AI evaluation
+    const PIECE_VALUES = { 1: 100, 2: 320, 3: 330, 4: 500, 5: 900, 6: 20000 };
+
+    // Piece-square tables (from white's perspective, flipped for black)
+    const PST_PAWN = [
+        0,  0,  0,  0,  0,  0,  0,  0,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        10, 10, 20, 30, 30, 20, 10, 10,
+        5,  5, 10, 25, 25, 10,  5,  5,
+        0,  0,  0, 20, 20,  0,  0,  0,
+        5, -5,-10,  0,  0,-10, -5,  5,
+        5, 10, 10,-20,-20, 10, 10,  5,
+        0,  0,  0,  0,  0,  0,  0,  0
+    ];
+    const PST_KNIGHT = [
+        -50,-40,-30,-30,-30,-30,-40,-50,
+        -40,-20,  0,  0,  0,  0,-20,-40,
+        -30,  0, 10, 15, 15, 10,  0,-30,
+        -30,  5, 15, 20, 20, 15,  5,-30,
+        -30,  0, 15, 20, 20, 15,  0,-30,
+        -30,  5, 10, 15, 15, 10,  5,-30,
+        -40,-20,  0,  5,  5,  0,-20,-40,
+        -50,-40,-30,-30,-30,-30,-40,-50
+    ];
+    const PST_BISHOP = [
+        -20,-10,-10,-10,-10,-10,-10,-20,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -10,  0, 10, 10, 10, 10,  0,-10,
+        -10,  5,  5, 10, 10,  5,  5,-10,
+        -10,  0,  5, 10, 10,  5,  0,-10,
+        -10,  5,  5,  5,  5,  5,  5,-10,
+        -10,  5,  0,  0,  0,  0,  5,-10,
+        -20,-10,-10,-10,-10,-10,-10,-20
+    ];
+    const PST_ROOK = [
+        0,  0,  0,  0,  0,  0,  0,  0,
+        5, 10, 10, 10, 10, 10, 10,  5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        0,  0,  0,  5,  5,  0,  0,  0
+    ];
+    const PST_QUEEN = [
+        -20,-10,-10, -5, -5,-10,-10,-20,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -10,  0,  5,  5,  5,  5,  0,-10,
+        -5,  0,  5,  5,  5,  5,  0, -5,
+        0,  0,  5,  5,  5,  5,  0, -5,
+        -10,  5,  5,  5,  5,  5,  0,-10,
+        -10,  0,  5,  0,  0,  0,  0,-10,
+        -20,-10,-10, -5, -5,-10,-10,-20
+    ];
+    const PST_KING = [
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -20,-30,-30,-40,-40,-30,-30,-20,
+        -10,-20,-20,-20,-20,-20,-20,-10,
+        20, 20,  0,  0,  0,  0, 20, 20,
+        20, 30, 10,  0,  0, 10, 30, 20
+    ];
+
+    const PST = { 1: PST_PAWN, 2: PST_KNIGHT, 3: PST_BISHOP, 4: PST_ROOK, 5: PST_QUEEN, 6: PST_KING };
+
     function isWhite(p) { return p >= W_PAWN && p <= W_KING; }
     function isBlack(p) { return p >= B_PAWN && p <= B_KING; }
     function colorOf(p) { if (isWhite(p)) return 'w'; if (isBlack(p)) return 'b'; return null; }
     function pieceType(p) {
         if (p === EMPTY) return null;
-        if (isWhite(p)) return p;            // 1-6
-        return p - 6;                         // map 7-12 -> 1-6
+        if (isWhite(p)) return p;
+        return p - 6;
     }
 
     function initialBoard() {
@@ -39,6 +106,7 @@
 
     const SQ = 60;
     const BOARD_PX = 480;
+    const AI_DEPTH = 3;
 
     const ChessApp = {
         canvas: null,
@@ -47,14 +115,16 @@
         abortController: null,
         board: null,
         turn: 'w',
-        selected: null,       // {r, c}
-        validMoves: [],       // [{r, c, special?}]
-        lastMove: null,       // {fr, fc, tr, tc}
-        enPassantTarget: null, // {r, c} square where en passant capture is possible
-        castleRights: null,    // { wK, wQ, bK, bQ }
+        selected: null,
+        validMoves: [],
+        lastMove: null,
+        enPassantTarget: null,
+        castleRights: null,
         gameOver: false,
         gameOverMsg: '',
         inCheck: false,
+        aiThinking: false,
+        aiTimeout: null,
         statusEl: null,
         btnEl: null,
 
@@ -65,11 +135,9 @@
             this.container = containerEl;
             this.abortController = new AbortController();
 
-            // Wrapper
             var wrapper = document.createElement('div');
             wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:8px;user-select:none;';
 
-            // Canvas
             this.canvas = document.createElement('canvas');
             this.canvas.width = BOARD_PX;
             this.canvas.height = BOARD_PX;
@@ -77,20 +145,17 @@
             this.ctx = this.canvas.getContext('2d');
             wrapper.appendChild(this.canvas);
 
-            // Status
             this.statusEl = document.createElement('div');
-            this.statusEl.style.cssText = 'margin-top:8px;font-size:16px;font-weight:bold;color:#eee;text-align:center;min-height:24px;';
+            this.statusEl.style.cssText = 'margin-top:8px;font-size:14px;font-weight:bold;color:#333;text-align:center;min-height:24px;';
             wrapper.appendChild(this.statusEl);
 
-            // New Game button
             this.btnEl = document.createElement('button');
             this.btnEl.textContent = 'New Game';
-            this.btnEl.style.cssText = 'margin-top:8px;padding:6px 18px;font-size:14px;cursor:pointer;border:none;border-radius:4px;background:#769656;color:#fff;font-weight:bold;';
+            this.btnEl.style.cssText = 'margin-top:8px;padding:6px 18px;font-size:13px;cursor:pointer;border:none;border-radius:4px;background:#769656;color:#fff;font-weight:bold;';
             wrapper.appendChild(this.btnEl);
 
             containerEl.appendChild(wrapper);
 
-            // Event listeners
             var self = this;
             var signal = this.abortController.signal;
             this.canvas.addEventListener('click', function (e) { self._onClick(e); }, { signal: signal });
@@ -100,28 +165,19 @@
         },
 
         destroy: function () {
-            if (this.abortController) {
-                this.abortController.abort();
-                this.abortController = null;
-            }
-            if (this.container) {
-                this.container.innerHTML = '';
-            }
-            this.canvas = null;
-            this.ctx = null;
-            this.container = null;
-            this.board = null;
-            this.selected = null;
-            this.validMoves = [];
-            this.lastMove = null;
-            this.statusEl = null;
-            this.btnEl = null;
+            if (this.aiTimeout) { clearTimeout(this.aiTimeout); this.aiTimeout = null; }
+            if (this.abortController) { this.abortController.abort(); this.abortController = null; }
+            if (this.container) { this.container.innerHTML = ''; }
+            this.canvas = null; this.ctx = null; this.container = null;
+            this.board = null; this.selected = null; this.validMoves = [];
+            this.lastMove = null; this.statusEl = null; this.btnEl = null;
         },
 
         // -----------------------------------------------------------
         // Game setup
         // -----------------------------------------------------------
         _newGame: function () {
+            if (this.aiTimeout) { clearTimeout(this.aiTimeout); this.aiTimeout = null; }
             this.board = initialBoard();
             this.turn = 'w';
             this.selected = null;
@@ -132,15 +188,16 @@
             this.gameOver = false;
             this.gameOverMsg = '';
             this.inCheck = false;
+            this.aiThinking = false;
             this._updateStatus();
             this._draw();
         },
 
         // -----------------------------------------------------------
-        // Click handling
+        // Click handling (white only)
         // -----------------------------------------------------------
         _onClick: function (e) {
-            if (this.gameOver) return;
+            if (this.gameOver || this.aiThinking || this.turn !== 'w') return;
             var rect = this.canvas.getBoundingClientRect();
             var x = e.clientX - rect.left;
             var y = e.clientY - rect.top;
@@ -148,7 +205,6 @@
             var r = Math.floor(y / SQ);
             if (r < 0 || r > 7 || c < 0 || c > 7) return;
 
-            // If a piece is already selected, try to move
             if (this.selected) {
                 var move = this._findMove(r, c);
                 if (move) {
@@ -159,24 +215,21 @@
                     this._draw();
                     return;
                 }
-                // Clicked on own piece -> reselect
                 var piece = this.board[r][c];
-                if (piece !== EMPTY && colorOf(piece) === this.turn) {
+                if (piece !== EMPTY && colorOf(piece) === 'w') {
                     this.selected = { r: r, c: c };
                     this.validMoves = this._legalMovesFor(r, c);
                     this._draw();
                     return;
                 }
-                // Deselect
                 this.selected = null;
                 this.validMoves = [];
                 this._draw();
                 return;
             }
 
-            // Select a piece
             var piece = this.board[r][c];
-            if (piece !== EMPTY && colorOf(piece) === this.turn) {
+            if (piece !== EMPTY && colorOf(piece) === 'w') {
                 this.selected = { r: r, c: c };
                 this.validMoves = this._legalMovesFor(r, c);
                 this._draw();
@@ -194,21 +247,18 @@
         // Move execution
         // -----------------------------------------------------------
         _makeMove: function (move) {
-            var fr = this.selected.r, fc = this.selected.c;
+            var fr = this.selected ? this.selected.r : move.fr;
+            var fc = this.selected ? this.selected.c : move.fc;
             var tr = move.r, tc = move.c;
             var piece = this.board[fr][fc];
-            var captured = this.board[tr][tc];
 
             this.lastMove = { fr: fr, fc: fc, tr: tr, tc: tc };
             this.enPassantTarget = null;
 
-            // En passant capture
             if (move.special === 'ep') {
                 var capturedRow = (this.turn === 'w') ? tr + 1 : tr - 1;
                 this.board[capturedRow][tc] = EMPTY;
             }
-
-            // Castling
             if (move.special === 'castleK') {
                 this.board[fr][7] = EMPTY;
                 this.board[fr][5] = (this.turn === 'w') ? W_ROOK : B_ROOK;
@@ -218,29 +268,23 @@
                 this.board[fr][3] = (this.turn === 'w') ? W_ROOK : B_ROOK;
             }
 
-            // Move piece
             this.board[tr][tc] = piece;
             this.board[fr][fc] = EMPTY;
 
-            // Pawn double move -> set en passant target
             if (pieceType(piece) === W_PAWN && Math.abs(tr - fr) === 2) {
                 this.enPassantTarget = { r: (fr + tr) / 2, c: fc };
             }
-
-            // Pawn promotion (auto-queen)
             if (pieceType(piece) === W_PAWN) {
                 if (this.turn === 'w' && tr === 0) this.board[tr][tc] = W_QUEEN;
                 if (this.turn === 'b' && tr === 7) this.board[tr][tc] = B_QUEEN;
             }
 
-            // Update castling rights
             if (piece === W_KING) { this.castleRights.wK = false; this.castleRights.wQ = false; }
             if (piece === B_KING) { this.castleRights.bK = false; this.castleRights.bQ = false; }
             if (piece === W_ROOK && fr === 7 && fc === 0) this.castleRights.wQ = false;
             if (piece === W_ROOK && fr === 7 && fc === 7) this.castleRights.wK = false;
             if (piece === B_ROOK && fr === 0 && fc === 0) this.castleRights.bQ = false;
             if (piece === B_ROOK && fr === 0 && fc === 7) this.castleRights.bK = false;
-            // If a rook is captured on its starting square
             if (tr === 7 && tc === 0) this.castleRights.wQ = false;
             if (tr === 7 && tc === 7) this.castleRights.wK = false;
             if (tr === 0 && tc === 0) this.castleRights.bQ = false;
@@ -248,33 +292,250 @@
         },
 
         _afterMove: function () {
-            // Switch turn
             this.turn = (this.turn === 'w') ? 'b' : 'w';
-
-            // Check detection
             this.inCheck = this._isInCheck(this.turn);
 
-            // Checkmate / stalemate
             if (!this._hasAnyLegalMove(this.turn)) {
                 this.gameOver = true;
                 if (this.inCheck) {
                     this.gameOverMsg = (this.turn === 'w') ? 'Black wins!' : 'White wins!';
                 } else {
-                    this.gameOverMsg = 'Draw!';
+                    this.gameOverMsg = 'Draw — Stalemate!';
                 }
             }
-
             this._updateStatus();
+
+            // Trigger AI for black
+            if (!this.gameOver && this.turn === 'b') {
+                this._triggerAI();
+            }
+        },
+
+        _triggerAI: function () {
+            this.aiThinking = true;
+            this.canvas.style.cursor = 'wait';
+            var self = this;
+            // Small delay so the UI updates before AI thinks
+            this.aiTimeout = setTimeout(function () {
+                self.aiTimeout = null;
+                self._aiMove();
+                self.aiThinking = false;
+                self.canvas.style.cursor = 'pointer';
+            }, 300);
         },
 
         _updateStatus: function () {
             if (!this.statusEl) return;
             if (this.gameOver) {
                 this.statusEl.textContent = this.gameOverMsg;
+            } else if (this.aiThinking) {
+                this.statusEl.textContent = 'Computer is thinking...';
             } else {
                 var checkStr = this.inCheck ? ' (Check!)' : '';
-                this.statusEl.textContent = (this.turn === 'w' ? 'White' : 'Black') + ' to move' + checkStr;
+                this.statusEl.textContent = (this.turn === 'w' ? 'Your turn (White)' : 'Computer thinking...') + checkStr;
             }
+        },
+
+        // -----------------------------------------------------------
+        // AI (Minimax with Alpha-Beta pruning)
+        // -----------------------------------------------------------
+        _aiMove: function () {
+            var bestScore = -Infinity;
+            var bestFrom = null;
+            var bestMove = null;
+
+            // Gather all legal moves for black
+            for (var r = 0; r < 8; r++) {
+                for (var c = 0; c < 8; c++) {
+                    if (colorOf(this.board[r][c]) !== 'b') continue;
+                    var moves = this._legalMovesFor(r, c);
+                    for (var i = 0; i < moves.length; i++) {
+                        var m = moves[i];
+                        // Save state
+                        var savedBoard = cloneBoard(this.board);
+                        var savedEP = this.enPassantTarget;
+                        var savedCR = { wK: this.castleRights.wK, wQ: this.castleRights.wQ, bK: this.castleRights.bK, bQ: this.castleRights.bQ };
+                        var savedSelected = this.selected;
+
+                        this.selected = { r: r, c: c };
+                        this._makeMove(m);
+
+                        var score = this._minimax(AI_DEPTH - 1, -Infinity, Infinity, false);
+
+                        // Restore state
+                        this.board = savedBoard;
+                        this.enPassantTarget = savedEP;
+                        this.castleRights = savedCR;
+                        this.selected = savedSelected;
+
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestFrom = { r: r, c: c };
+                            bestMove = m;
+                        }
+                    }
+                }
+            }
+
+            if (bestMove && bestFrom) {
+                this.selected = bestFrom;
+                this._makeMove(bestMove);
+                this.selected = null;
+                this.validMoves = [];
+                this._afterMoveNoAI();
+                this._draw();
+            }
+        },
+
+        // After AI move, switch turn but don't re-trigger AI
+        _afterMoveNoAI: function () {
+            this.turn = (this.turn === 'w') ? 'b' : 'w';
+            this.inCheck = this._isInCheck(this.turn);
+
+            if (!this._hasAnyLegalMove(this.turn)) {
+                this.gameOver = true;
+                if (this.inCheck) {
+                    this.gameOverMsg = (this.turn === 'w') ? 'You lose!' : 'You win!';
+                } else {
+                    this.gameOverMsg = 'Draw — Stalemate!';
+                }
+            }
+            this._updateStatus();
+        },
+
+        _minimax: function (depth, alpha, beta, isMaximizing) {
+            if (depth === 0) return this._evaluate();
+
+            var color = isMaximizing ? 'b' : 'w';
+
+            // Check for no legal moves
+            var hasMove = false;
+
+            if (isMaximizing) {
+                var maxEval = -Infinity;
+                for (var r = 0; r < 8; r++) {
+                    for (var c = 0; c < 8; c++) {
+                        if (colorOf(this.board[r][c]) !== 'b') continue;
+                        var moves = this._legalMovesForAI(r, c, color);
+                        for (var i = 0; i < moves.length; i++) {
+                            hasMove = true;
+                            var m = moves[i];
+                            var savedBoard = cloneBoard(this.board);
+                            var savedEP = this.enPassantTarget;
+                            var savedCR = { wK: this.castleRights.wK, wQ: this.castleRights.wQ, bK: this.castleRights.bK, bQ: this.castleRights.bQ };
+                            var savedTurn = this.turn;
+                            var savedSelected = this.selected;
+
+                            this.turn = 'b';
+                            this.selected = { r: r, c: c };
+                            this._makeMove(m);
+
+                            var evl = this._minimax(depth - 1, alpha, beta, false);
+
+                            this.board = savedBoard;
+                            this.enPassantTarget = savedEP;
+                            this.castleRights = savedCR;
+                            this.turn = savedTurn;
+                            this.selected = savedSelected;
+
+                            if (evl > maxEval) maxEval = evl;
+                            if (evl > alpha) alpha = evl;
+                            if (beta <= alpha) return maxEval;
+                        }
+                    }
+                }
+                if (!hasMove) {
+                    if (this._isInCheckOnBoard('b', this.board)) return -90000 + (AI_DEPTH - depth);
+                    return 0;
+                }
+                return maxEval;
+            } else {
+                var minEval = Infinity;
+                for (var r = 0; r < 8; r++) {
+                    for (var c = 0; c < 8; c++) {
+                        if (colorOf(this.board[r][c]) !== 'w') continue;
+                        var moves = this._legalMovesForAI(r, c, color);
+                        for (var i = 0; i < moves.length; i++) {
+                            hasMove = true;
+                            var m = moves[i];
+                            var savedBoard = cloneBoard(this.board);
+                            var savedEP = this.enPassantTarget;
+                            var savedCR = { wK: this.castleRights.wK, wQ: this.castleRights.wQ, bK: this.castleRights.bK, bQ: this.castleRights.bQ };
+                            var savedTurn = this.turn;
+                            var savedSelected = this.selected;
+
+                            this.turn = 'w';
+                            this.selected = { r: r, c: c };
+                            this._makeMove(m);
+
+                            var evl = this._minimax(depth - 1, alpha, beta, true);
+
+                            this.board = savedBoard;
+                            this.enPassantTarget = savedEP;
+                            this.castleRights = savedCR;
+                            this.turn = savedTurn;
+                            this.selected = savedSelected;
+
+                            if (evl < minEval) minEval = evl;
+                            if (evl < beta) beta = evl;
+                            if (beta <= alpha) return minEval;
+                        }
+                    }
+                }
+                if (!hasMove) {
+                    if (this._isInCheckOnBoard('w', this.board)) return 90000 - (AI_DEPTH - depth);
+                    return 0;
+                }
+                return minEval;
+            }
+        },
+
+        // Simplified legal moves for AI (no need to track castleRights in deep search for speed)
+        _legalMovesForAI: function (r, c, turnColor) {
+            var piece = this.board[r][c];
+            if (piece === EMPTY) return [];
+            var color = colorOf(piece);
+            var pseudos = this._pseudoMovesFor(r, c, this.board, this.castleRights, this.enPassantTarget);
+            var legal = [];
+            var enemy = (color === 'w') ? 'b' : 'w';
+
+            for (var i = 0; i < pseudos.length; i++) {
+                var m = pseudos[i];
+                if (m.special === 'castleK' || m.special === 'castleQ') {
+                    if (this._isInCheckOnBoard(color, this.board)) continue;
+                    var midC = m.special === 'castleK' ? 5 : 3;
+                    if (this._isSquareAttacked(r, midC, enemy, this.board)) continue;
+                    if (this._isSquareAttacked(m.r, m.c, enemy, this.board)) continue;
+                }
+                var simBoard = this._simulateMove(r, c, m.r, m.c, m.special, this.board);
+                if (!this._isInCheckOnBoard(color, simBoard)) {
+                    legal.push(m);
+                }
+            }
+            return legal;
+        },
+
+        _evaluate: function () {
+            // Positive = good for black, negative = good for white
+            var score = 0;
+            for (var r = 0; r < 8; r++) {
+                for (var c = 0; c < 8; c++) {
+                    var p = this.board[r][c];
+                    if (p === EMPTY) continue;
+                    var type = pieceType(p);
+                    var val = PIECE_VALUES[type] || 0;
+                    var pst = PST[type];
+                    if (isWhite(p)) {
+                        score -= val;
+                        if (pst) score -= pst[r * 8 + c];
+                    } else {
+                        score += val;
+                        // Flip table for black (mirror vertically)
+                        if (pst) score += pst[(7 - r) * 8 + c];
+                    }
+                }
+            }
+            return score;
         },
 
         // -----------------------------------------------------------
@@ -286,14 +547,13 @@
             var color = colorOf(piece);
             var type = pieceType(piece);
             var moves = [];
-            var self = this;
 
             function addIfValid(tr, tc, special) {
                 if (tr < 0 || tr > 7 || tc < 0 || tc > 7) return false;
                 var target = board[tr][tc];
                 if (target !== EMPTY && colorOf(target) === color) return false;
                 moves.push({ r: tr, c: tc, special: special || null });
-                return target === EMPTY; // return true if square was empty (for sliding)
+                return target === EMPTY;
             }
 
             function slide(dr, dc) {
@@ -305,22 +565,18 @@
             if (type === W_PAWN) {
                 var dir = (color === 'w') ? -1 : 1;
                 var startRow = (color === 'w') ? 6 : 1;
-                // Forward
                 if (r + dir >= 0 && r + dir <= 7 && board[r + dir][c] === EMPTY) {
                     moves.push({ r: r + dir, c: c, special: null });
-                    // Double move
                     if (r === startRow && board[r + 2 * dir][c] === EMPTY) {
                         moves.push({ r: r + 2 * dir, c: c, special: null });
                     }
                 }
-                // Captures
                 for (var dc = -1; dc <= 1; dc += 2) {
                     var tr = r + dir, tc = c + dc;
                     if (tc < 0 || tc > 7 || tr < 0 || tr > 7) continue;
                     if (board[tr][tc] !== EMPTY && colorOf(board[tr][tc]) !== color) {
                         moves.push({ r: tr, c: tc, special: null });
                     }
-                    // En passant
                     if (enPassantTarget && enPassantTarget.r === tr && enPassantTarget.c === tc) {
                         moves.push({ r: tr, c: tc, special: 'ep' });
                     }
@@ -342,30 +598,20 @@
                         addIfValid(r + dr, c + dc);
                     }
                 }
-                // Castling
                 if (castleRights) {
                     if (color === 'w') {
-                        if (castleRights.wK && board[7][5] === EMPTY && board[7][6] === EMPTY &&
-                            board[7][7] === W_ROOK && r === 7 && c === 4) {
+                        if (castleRights.wK && board[7][5] === EMPTY && board[7][6] === EMPTY && board[7][7] === W_ROOK && r === 7 && c === 4)
                             moves.push({ r: 7, c: 6, special: 'castleK' });
-                        }
-                        if (castleRights.wQ && board[7][3] === EMPTY && board[7][2] === EMPTY &&
-                            board[7][1] === EMPTY && board[7][0] === W_ROOK && r === 7 && c === 4) {
+                        if (castleRights.wQ && board[7][3] === EMPTY && board[7][2] === EMPTY && board[7][1] === EMPTY && board[7][0] === W_ROOK && r === 7 && c === 4)
                             moves.push({ r: 7, c: 2, special: 'castleQ' });
-                        }
                     } else {
-                        if (castleRights.bK && board[0][5] === EMPTY && board[0][6] === EMPTY &&
-                            board[0][7] === B_ROOK && r === 0 && c === 4) {
+                        if (castleRights.bK && board[0][5] === EMPTY && board[0][6] === EMPTY && board[0][7] === B_ROOK && r === 0 && c === 4)
                             moves.push({ r: 0, c: 6, special: 'castleK' });
-                        }
-                        if (castleRights.bQ && board[0][3] === EMPTY && board[0][2] === EMPTY &&
-                            board[0][1] === EMPTY && board[0][0] === B_ROOK && r === 0 && c === 4) {
+                        if (castleRights.bQ && board[0][3] === EMPTY && board[0][2] === EMPTY && board[0][1] === EMPTY && board[0][0] === B_ROOK && r === 0 && c === 4)
                             moves.push({ r: 0, c: 2, special: 'castleQ' });
-                        }
                     }
                 }
             }
-
             return moves;
         },
 
@@ -380,7 +626,6 @@
         },
 
         _isSquareAttacked: function (r, c, byColor, board) {
-            // Check if square (r,c) is attacked by any piece of byColor
             for (var row = 0; row < 8; row++) {
                 for (var col = 0; col < 8; col++) {
                     var p = board[row][col];
@@ -458,7 +703,6 @@
             }
             b[tr][tc] = piece;
             b[fr][fc] = EMPTY;
-            // Promotion
             if (pieceType(piece) === W_PAWN) {
                 if (isWhite(piece) && tr === 0) b[tr][tc] = W_QUEEN;
                 if (isBlack(piece) && tr === 7) b[tr][tc] = B_QUEEN;
@@ -476,15 +720,12 @@
 
             for (var i = 0; i < pseudos.length; i++) {
                 var m = pseudos[i];
-
-                // Castling: king must not be in check, must not pass through check
                 if (m.special === 'castleK' || m.special === 'castleQ') {
                     if (this._isInCheckOnBoard(color, this.board)) continue;
                     var midC = m.special === 'castleK' ? 5 : 3;
                     if (this._isSquareAttacked(r, midC, enemy, this.board)) continue;
                     if (this._isSquareAttacked(m.r, m.c, enemy, this.board)) continue;
                 }
-
                 var simBoard = this._simulateMove(r, c, m.r, m.c, m.special, this.board);
                 if (!this._isInCheckOnBoard(color, simBoard)) {
                     legal.push(m);
@@ -511,28 +752,22 @@
             var ctx = this.ctx;
             if (!ctx) return;
 
-            // Draw squares
             for (var r = 0; r < 8; r++) {
                 for (var c = 0; c < 8; c++) {
                     var isLight = (r + c) % 2 === 0;
                     ctx.fillStyle = isLight ? '#EEEED2' : '#769656';
 
-                    // Last move highlight
                     if (this.lastMove) {
                         if ((r === this.lastMove.fr && c === this.lastMove.fc) ||
                             (r === this.lastMove.tr && c === this.lastMove.tc)) {
                             ctx.fillStyle = isLight ? '#F6F669' : '#BACA2B';
                         }
                     }
-
-                    // Selected piece highlight
                     if (this.selected && this.selected.r === r && this.selected.c === c) {
                         ctx.fillStyle = '#F6F669';
                     }
-
                     ctx.fillRect(c * SQ, r * SQ, SQ, SQ);
 
-                    // Check highlight on king
                     if (this.inCheck) {
                         var king = (this.turn === 'w') ? W_KING : B_KING;
                         if (this.board[r][c] === king) {
@@ -543,26 +778,22 @@
                 }
             }
 
-            // Draw valid move indicators
             for (var i = 0; i < this.validMoves.length; i++) {
                 var m = this.validMoves[i];
                 var isCapture = this.board[m.r][m.c] !== EMPTY || m.special === 'ep';
                 ctx.beginPath();
                 if (isCapture) {
-                    // Ring on capture squares
                     ctx.arc(m.c * SQ + SQ / 2, m.r * SQ + SQ / 2, SQ / 2 - 4, 0, Math.PI * 2);
                     ctx.lineWidth = 4;
                     ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
                     ctx.stroke();
                 } else {
-                    // Dot on empty squares
                     ctx.arc(m.c * SQ + SQ / 2, m.r * SQ + SQ / 2, 8, 0, Math.PI * 2);
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
                     ctx.fill();
                 }
             }
 
-            // Draw pieces
             ctx.font = '40px serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -571,7 +802,6 @@
                     var p = this.board[r][c];
                     if (p !== EMPTY) {
                         var ch = PIECE_UNICODE[p];
-                        // Draw a subtle shadow for better visibility
                         ctx.fillStyle = 'rgba(0,0,0,0.2)';
                         ctx.fillText(ch, c * SQ + SQ / 2 + 1, r * SQ + SQ / 2 + 2);
                         ctx.fillStyle = isWhite(p) ? '#FFFFFF' : '#000000';
@@ -580,7 +810,6 @@
                 }
             }
 
-            // Rank / file labels
             ctx.font = 'bold 10px sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
