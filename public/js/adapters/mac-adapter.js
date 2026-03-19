@@ -58,16 +58,28 @@
                     this.toggleAppleMenu();
                 });
             }
-            // Close apple menu on outside click
+            // Wire up menu bar items (File, Edit, View, etc.)
+            this.setupMenuItems();
+
+            // Close any open menu dropdown on outside click
             document.addEventListener('click', (e) => {
                 const dropdown = document.getElementById('apple-menu-dropdown');
                 if (dropdown && !dropdown.contains(e.target) && !e.target.closest('.mac-apple-menu')) {
                     dropdown.remove();
                 }
+                this.closeMenuDropdown(e);
             });
             // Escape closes context menu and apple menu
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
+                    // Close menu bar dropdowns
+                    const menuDropdown = document.querySelector('.mac-menu-dropdown');
+                    if (menuDropdown) {
+                        menuDropdown.remove();
+                        document.querySelectorAll('#mac-desktop .mac-menu-item').forEach(mi => mi.classList.remove('active'));
+                        e.stopPropagation();
+                        return;
+                    }
                     const dropdown = document.getElementById('apple-menu-dropdown');
                     if (dropdown) { dropdown.remove(); e.stopPropagation(); return; }
                     const ctxMenu = document.getElementById('mac-context-menu');
@@ -106,6 +118,161 @@
             });
             const menubar = document.querySelector('#mac-desktop .mac-menubar');
             menubar.appendChild(dropdown);
+        },
+
+        /* --------------------------------------------------------
+         * Menu Bar Items (File, Edit, View, Go, Window, Help)
+         * ------------------------------------------------------ */
+        _menuDefinitions: {
+            'File': [
+                { label: 'New Finder Window', action: 'finder' },
+                { type: 'separator' },
+                { label: 'Open...', disabled: true },
+                { label: 'Close Window', action: 'close-window' },
+                { type: 'separator' },
+                { label: 'Get Info', disabled: true },
+            ],
+            'Edit': [
+                { label: 'Undo', disabled: true },
+                { label: 'Redo', disabled: true },
+                { type: 'separator' },
+                { label: 'Cut', disabled: true },
+                { label: 'Copy', disabled: true },
+                { label: 'Paste', disabled: true },
+                { label: 'Select All', disabled: true },
+            ],
+            'View': [
+                { label: 'as Icons', disabled: true },
+                { label: 'as List', disabled: true },
+                { label: 'as Columns', disabled: true },
+                { label: 'as Cover Flow', disabled: true },
+                { type: 'separator' },
+                { label: 'Show Path Bar', disabled: true },
+                { label: 'Show Status Bar', disabled: true },
+            ],
+            'Go': [
+                { label: 'Computer', action: 'my-computer' },
+                { label: 'Home', disabled: true },
+                { label: 'Documents', action: 'projects' },
+                { type: 'separator' },
+                { label: 'Applications', disabled: true },
+            ],
+            'Window': [
+                { label: 'Minimize', action: 'minimize-window' },
+                { label: 'Zoom', action: 'maximize-window' },
+                { type: 'separator' },
+                { label: 'Bring All to Front', disabled: true },
+            ],
+            'Help': [
+                { label: 'About Tatenda', action: 'about' },
+                { label: 'View CV', action: 'cv' },
+                { label: 'Contact', action: 'contact' },
+            ],
+        },
+
+        setupMenuItems() {
+            const items = document.querySelectorAll('#mac-desktop .mac-menu-item');
+            items.forEach(item => {
+                item.style.cursor = 'default';
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const label = item.textContent;
+                    this.toggleMenuDropdown(label, item);
+                });
+                // Hover-to-switch: if a dropdown is open and you hover another item, switch
+                item.addEventListener('mouseenter', () => {
+                    const existing = document.querySelector('.mac-menu-dropdown');
+                    if (existing) {
+                        const label = item.textContent;
+                        this.toggleMenuDropdown(label, item, true);
+                    }
+                });
+            });
+        },
+
+        toggleMenuDropdown(menuName, anchorEl, forceOpen) {
+            // Close existing
+            const existing = document.querySelector('.mac-menu-dropdown');
+            if (existing) {
+                const wasThisMenu = existing.dataset.menuName === menuName;
+                existing.remove();
+                if (wasThisMenu && !forceOpen) return;
+            }
+
+            const items = this._menuDefinitions[menuName];
+            if (!items) return;
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'mac-menu-dropdown apple-menu-dropdown';
+            dropdown.dataset.menuName = menuName;
+            dropdown.setAttribute('role', 'menu');
+
+            items.forEach(item => {
+                if (item.type === 'separator') {
+                    const sep = document.createElement('div');
+                    sep.className = 'context-separator';
+                    dropdown.appendChild(sep);
+                    return;
+                }
+                const btn = document.createElement('button');
+                btn.className = 'context-item';
+                btn.setAttribute('role', 'menuitem');
+                btn.textContent = item.label;
+                if (item.disabled) {
+                    btn.classList.add('disabled');
+                    btn.disabled = true;
+                } else {
+                    btn.addEventListener('click', () => {
+                        dropdown.remove();
+                        this._handleMenuAction(item.action);
+                    });
+                }
+                dropdown.appendChild(btn);
+            });
+
+            // Position below the anchor menu item
+            const rect = anchorEl.getBoundingClientRect();
+            dropdown.style.position = 'fixed';
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.top = rect.bottom + 'px';
+
+            document.body.appendChild(dropdown);
+
+            // Highlight the active menu item
+            document.querySelectorAll('#mac-desktop .mac-menu-item').forEach(mi => mi.classList.remove('active'));
+            anchorEl.classList.add('active');
+        },
+
+        _handleMenuAction(action) {
+            document.querySelectorAll('#mac-desktop .mac-menu-item').forEach(mi => mi.classList.remove('active'));
+            switch (action) {
+                case 'close-window':
+                    if (window.WindowManager && window.WindowManager.activeWindowId) {
+                        window.WindowManager.closeWindow(window.WindowManager.activeWindowId);
+                    }
+                    break;
+                case 'minimize-window':
+                    if (window.WindowManager && window.WindowManager.activeWindowId) {
+                        window.WindowManager.minimizeWindow(window.WindowManager.activeWindowId);
+                    }
+                    break;
+                case 'maximize-window':
+                    if (window.WindowManager && window.WindowManager.activeWindowId) {
+                        window.WindowManager.toggleMaximize(window.WindowManager.activeWindowId);
+                    }
+                    break;
+                default:
+                    if (action) this.openApp(action, action.charAt(0).toUpperCase() + action.slice(1));
+                    break;
+            }
+        },
+
+        closeMenuDropdown(e) {
+            const dropdown = document.querySelector('.mac-menu-dropdown');
+            if (dropdown && !dropdown.contains(e.target) && !e.target.closest('.mac-menu-items')) {
+                dropdown.remove();
+                document.querySelectorAll('#mac-desktop .mac-menu-item').forEach(mi => mi.classList.remove('active'));
+            }
         },
 
         /** Update menu bar app name when a window gains focus. */

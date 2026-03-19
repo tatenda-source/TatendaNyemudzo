@@ -99,10 +99,30 @@
     transition: background 0.1s;
 }
 
-.mac-menu-item:hover {
+.mac-menu-item:hover,
+.mac-menu-item.active {
     background: linear-gradient(to bottom, #4A90D9 0%, #2968C8 100%);
     color: #fff;
     border-radius: 4px;
+}
+
+/* Disabled menu items */
+.apple-menu-dropdown .context-item.disabled,
+.mac-menu-dropdown .context-item.disabled {
+    color: #999;
+    cursor: default;
+}
+
+.apple-menu-dropdown .context-item.disabled:hover,
+.mac-menu-dropdown .context-item.disabled:hover {
+    background: transparent;
+    color: #999;
+}
+
+/* Menu dropdown can also appear from menu bar items */
+.mac-menu-dropdown {
+    position: fixed;
+    border-radius: 0 0 6px 6px;
 }
 
 .mac-status-icons {

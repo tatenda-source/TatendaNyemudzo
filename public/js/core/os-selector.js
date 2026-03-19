@@ -22,7 +22,7 @@
             // Check for saved OS preference — pre-highlight, don't auto-boot
             const savedOS = localStorage.getItem('nostalgiaOS');
 
-            this.setupStarfield();
+            // Starfield replaced by CSS ambient glow — skip canvas animation
             this.setupEventListeners();
             // Pre-select saved OS if returning visitor
             const defaultIndex = savedOS === 'mac' ? 1 : 0;
