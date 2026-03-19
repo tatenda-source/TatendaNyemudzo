@@ -92,95 +92,94 @@
     100% { opacity: 1; }
 }
 
-/* Mac spinning gear — 12-spoke radial indicator like real Mac boot */
+/* Mac spinning gear — 12 individual spokes like real Mac boot */
 .mac-boot-spinner {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     position: relative;
     animation: macSpinnerRotate 1s steps(12) infinite;
 }
 
+/* 12 spokes using box-shadows of a single pseudo-element */
 .mac-boot-spinner::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background:
-        /* 12 spokes as thin radial lines */
-        conic-gradient(
-            from 0deg,
-            rgba(85,85,85,0.2) 0deg,
-            rgba(85,85,85,0.9) 2deg,
-            rgba(85,85,85,0.2) 4deg,
-            transparent 4deg,
-            transparent 30deg,
-            rgba(85,85,85,0.25) 30deg,
-            rgba(85,85,85,0.8) 32deg,
-            rgba(85,85,85,0.25) 34deg,
-            transparent 34deg,
-            transparent 60deg,
-            rgba(85,85,85,0.3) 60deg,
-            rgba(85,85,85,0.7) 62deg,
-            rgba(85,85,85,0.3) 64deg,
-            transparent 64deg,
-            transparent 90deg,
-            rgba(85,85,85,0.3) 90deg,
-            rgba(85,85,85,0.6) 92deg,
-            rgba(85,85,85,0.3) 94deg,
-            transparent 94deg,
-            transparent 120deg,
-            rgba(85,85,85,0.3) 120deg,
-            rgba(85,85,85,0.55) 122deg,
-            rgba(85,85,85,0.3) 124deg,
-            transparent 124deg,
-            transparent 150deg,
-            rgba(85,85,85,0.25) 150deg,
-            rgba(85,85,85,0.5) 152deg,
-            rgba(85,85,85,0.25) 154deg,
-            transparent 154deg,
-            transparent 180deg,
-            rgba(85,85,85,0.25) 180deg,
-            rgba(85,85,85,0.45) 182deg,
-            rgba(85,85,85,0.25) 184deg,
-            transparent 184deg,
-            transparent 210deg,
-            rgba(85,85,85,0.2) 210deg,
-            rgba(85,85,85,0.4) 212deg,
-            rgba(85,85,85,0.2) 214deg,
-            transparent 214deg,
-            transparent 240deg,
-            rgba(85,85,85,0.2) 240deg,
-            rgba(85,85,85,0.35) 242deg,
-            rgba(85,85,85,0.2) 244deg,
-            transparent 244deg,
-            transparent 270deg,
-            rgba(85,85,85,0.2) 270deg,
-            rgba(85,85,85,0.3) 272deg,
-            rgba(85,85,85,0.2) 274deg,
-            transparent 274deg,
-            transparent 300deg,
-            rgba(85,85,85,0.2) 300deg,
-            rgba(85,85,85,0.25) 302deg,
-            rgba(85,85,85,0.2) 304deg,
-            transparent 304deg,
-            transparent 330deg,
-            rgba(85,85,85,0.15) 330deg,
-            rgba(85,85,85,0.2) 332deg,
-            rgba(85,85,85,0.15) 334deg,
-            transparent 334deg,
-            transparent 360deg
-        );
+    left: 50%;
+    width: 3px;
+    height: 9px;
+    margin-left: -1.5px;
+    background: rgba(85, 85, 85, 0.95);
+    border-radius: 2px;
+    transform-origin: center 16px;
+    box-shadow:
+        /* Each spoke rotated 30deg apart, fading opacity */
+        0 0 0 0 rgba(85,85,85,0.95),
+        0 0 0 0 rgba(85,85,85,0.95);
+}
+
+/* Use multiple pseudo-elements won't work, so use 12 box-shadow spokes */
+.mac-boot-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Simpler approach: 12 child divs or use the working conic approach */
+.mac-boot-spinner::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    /* Hollow center */
-    mask: radial-gradient(circle, transparent 28%, black 30%);
-    -webkit-mask: radial-gradient(circle, transparent 28%, black 30%);
+    background: conic-gradient(
+        rgba(85,85,85,0.05) 0deg,
+        rgba(85,85,85,0.9) 30deg,
+        rgba(85,85,85,0.05) 60deg,
+        transparent 60deg,
+        transparent 360deg
+    );
+    mask: radial-gradient(circle, transparent 32%, black 34%);
+    -webkit-mask: radial-gradient(circle, transparent 32%, black 34%);
 }
 
 @keyframes macSpinnerRotate {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Hide boot text on Mac (real Mac has no text during boot) */
+#mac-boot .boot-text {
+    display: none;
+}
+
+/* Mac boot has a subtle progress bar after 10.5+ */
+.mac-boot-progress-bar {
+    display: none;
+}
+#mac-boot .mac-boot-progress-bar {
+    display: block;
+    width: 180px;
+    height: 5px;
+    background: rgba(100,100,100,0.3);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+#mac-boot .mac-boot-progress-bar::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: rgba(80,80,80,0.8);
+    border-radius: 3px;
+    animation: macBootProgress 3s ease-out forwards;
+}
+
+@keyframes macBootProgress {
+    0% { width: 0%; }
+    100% { width: 100%; }
 }
 
 .boot-text {
