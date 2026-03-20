@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/tatendanyemudzo/TatendaNyemudzo -type f \\\\\\(-name *.svg -o -name *.png -o -name *.jpg -o -name *.jpeg -o -name *.gif -o -name *.webp \\\\\\) -not -path */node_modules/*)",
+      "Bash(curl -s http://localhost:5173/js/core/event-bus.js)",
+      "Bash(curl -s http://localhost:5173/js/core/window-manager.js)",
+      "Bash(curl -s http://localhost:5173/js/adapters/vista-adapter.js)",
+      "Bash(curl -s http://localhost:5173/js/adapters/mac-adapter.js)",
+      "Bash(curl -s http://localhost:5173/css/mac/shell.css)"
+    ]
+  }
+}
